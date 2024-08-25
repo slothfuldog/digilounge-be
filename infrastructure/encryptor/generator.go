@@ -8,19 +8,65 @@ import (
 
 	"aidanwoods.dev/go-paseto"
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/argon2"
 )
 
-func PasswordGenerator(password string) string {
+func PasswordGenerator(password string) (encryptedPass string, e error) {
+	path, err := os.Getwd()
+	if err != nil {
+		com.PrintLog(fmt.Sprintf("(PASSGENERATOR: 1000) %s", err))
+		return "", err
+	}
+	currDir := fmt.Sprint(path, "/.env")
+	er := godotenv.Load(currDir)
+
+	if er != nil {
+		com.PrintLog(fmt.Sprintf("(PASSGENERATOR:1001) %s", er))
+		return "", err
+	}
+
+	encrypted := argon2.IDKey([]byte(password), []byte(os.Getenv("salt")), 2, 64*1024, 8, 32)
+
+	return string(encrypted), nil
+}
+
+func VerifyPassword(encrpytedPass, password string) (isMatch bool, e error) {
+	path, err := os.Getwd()
+	if err != nil {
+		com.PrintLog(fmt.Sprintf("(VERIFYPASS: 1000) %s", err))
+		return false, err
+	}
+	currDir := fmt.Sprint(path, "/.env")
+	er := godotenv.Load(currDir)
+
+	if er != nil {
+		com.PrintLog(fmt.Sprintf("(VERIFYPASS:1001) %s", er))
+		return false, er
+	}
+
+	encrypted := argon2.IDKey([]byte(password), []byte(os.Getenv("salt")), 2, 64*1024, 8, 32)
+
+	if encrpytedPass != string(encrypted) {
+		com.PrintLog("(VERIFYPASS:1002) PASSWORD IS NOT MATCH")
+		return false, fmt.Errorf("PASSWORD IS NOT MATCH")
+	}
+
+	return true, nil
+}
+
+func FieldGenerator(field string) (result string, e error) {
 	key := GetStaticKey()
 	path, err := os.Getwd()
 	if err != nil {
 		com.PrintLog(fmt.Sprintf("(GENERATOR: 1000) %s", err))
+		return "", err
 	}
 	currDir := fmt.Sprint(path, "/.env")
 	er := godotenv.Load(currDir)
 
 	if er != nil {
 		com.PrintLog(fmt.Sprintf("(GENERATOR:1001) %s", er))
+		return "", er
 	}
 
 	token := paseto.NewToken()
@@ -28,26 +74,26 @@ func PasswordGenerator(password string) string {
 	token.SetIssuedAt(time.Now())
 	token.SetNotBefore(time.Now())
 
-	token.SetString(os.Getenv("secretKey"), password)
+	token.SetString(os.Getenv("secretKey"), field)
 
 	encrypted := token.V4Encrypt(key, nil)
 
-	return encrypted
+	return encrypted, nil
 }
 
-func VerifyPassword(encryptedToken, password string) bool {
+func VerifyField(encryptedToken, field string) (message string, e error) {
 	key := GetStaticKey()
 	path, err := os.Getwd()
 	if err != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY: 1000) %s", err))
-		return false
+		return "", err
 	}
 	currDir := fmt.Sprint(path, "/.env")
 	er := godotenv.Load(currDir)
 
 	if er != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY:1001) %s", er))
-		return false
+		return "", er
 	}
 
 	parser := paseto.NewParserWithoutExpiryCheck()
@@ -56,21 +102,16 @@ func VerifyPassword(encryptedToken, password string) bool {
 
 	if er2 != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY: 1003) %s", er2))
-		return false
+		return "", er2
 	}
 
-	retrievedPassword, err := token.GetString(os.Getenv("secretKey"))
+	json, err := token.GetString(os.Getenv("secretKey"))
 	if err != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY: 1004) %s\n", err))
-		return false
+		return "", err
 	}
 
-	if retrievedPassword != password {
-		fmt.Println("Passwords do not match.")
-		return false
-	}
-
-	return true
+	return json, nil
 }
 
 func GetStaticKey() paseto.V4SymmetricKey {
