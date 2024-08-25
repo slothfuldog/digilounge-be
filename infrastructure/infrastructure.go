@@ -8,6 +8,7 @@ import (
 
 	com "digilounge/infrastructure/functions"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
 
@@ -18,13 +19,12 @@ func NewDatabaseConnect(dir string) *sql.DB {
 		log.Fatal("(INFRASTRUCTURE:1001): ", err)
 	}
 
-	sqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		os.Getenv("dbEnv"), os.Getenv("dbPort"),
+	sqlInfo := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
 		os.Getenv("dbUser"), os.Getenv("dbPassword"),
+		os.Getenv("dbEnv"), os.Getenv("dbPort"),
 		os.Getenv("dbName"))
 
-	db, err := sql.Open("postgres", sqlInfo)
+	db, err := sql.Open("mysql", sqlInfo)
 	if err != nil {
 		log.Fatal("(INFRASTRUCTURE:1002): ", err)
 	}
