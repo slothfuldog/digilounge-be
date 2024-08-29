@@ -2,6 +2,7 @@ package encryptor
 
 import (
 	com "digilounge/infrastructure/functions"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -30,7 +31,7 @@ func PasswordGenerator(password string) (encryptedPass string, e error) {
 	return string(encrypted), nil
 }
 
-func FieldGenerator(field string) (result string, e error) {
+func FieldGenerator(customData map[string]interface{}) (result string, e error) {
 	key := GetStaticKey()
 	path, err := os.Getwd()
 	if err != nil {
@@ -51,7 +52,14 @@ func FieldGenerator(field string) (result string, e error) {
 	token.SetNotBefore(time.Now())
 	token.SetExpiration(time.Now().Add(24 * time.Hour))
 
-	token.SetString(os.Getenv("secretKey"), field)
+	customJson, ers := json.Marshal(customData)
+
+	if ers != nil {
+		com.PrintLog(fmt.Sprintf("(GENERATOR:1002) %s", er))
+		return "", fmt.Errorf("error marshaling custom data: %v", ers)
+	}
+
+	token.SetString(os.Getenv("secretKey"), string(customJson))
 
 	encrypted := token.V4Encrypt(key, nil)
 

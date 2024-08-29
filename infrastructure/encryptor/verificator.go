@@ -2,6 +2,7 @@ package encryptor
 
 import (
 	com "digilounge/infrastructure/functions"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -34,19 +35,20 @@ func VerifyPassword(encrpytedPass, password string) (isMatch bool, e error) {
 	return true, nil
 }
 
-func VerifyField(encryptedToken, field string) (message string, e error) {
+func VerifyField(encryptedToken string) (payloads map[string]interface{}, e error) {
+	var payload map[string]interface{}
 	key := GetStaticKey()
 	path, err := os.Getwd()
 	if err != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY: 1000) %s", err))
-		return "", err
+		return nil, err
 	}
 	currDir := fmt.Sprint(path, "/.env")
 	er := godotenv.Load(currDir)
 
 	if er != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY:1001) %s", er))
-		return "", er
+		return nil, er
 	}
 
 	parser := paseto.NewParserWithoutExpiryCheck()
@@ -55,14 +57,19 @@ func VerifyField(encryptedToken, field string) (message string, e error) {
 
 	if er2 != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY: 1003) %s", er2))
-		return "", er2
+		return nil, er2
 	}
 
-	json, err := token.GetString(os.Getenv("secretKey"))
+	encrypted, err := token.GetString(os.Getenv("secretKey"))
 	if err != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY: 1004) %s\n", err))
-		return "", err
+		return nil, err
 	}
 
-	return json, nil
+	if errr := json.Unmarshal([]byte(encrypted), &payload); errr != nil {
+		com.PrintLog(fmt.Sprintf("(VERIFY:1005) %s", errr))
+		return nil, fmt.Errorf("Error unmarshaling payload: %v", err)
+	}
+
+	return payload, nil
 }
