@@ -8,7 +8,6 @@ import (
 
 	com "digilounge/infrastructure/functions"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
 
