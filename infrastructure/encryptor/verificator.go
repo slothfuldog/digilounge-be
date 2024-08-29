@@ -51,7 +51,7 @@ func VerifyField(encryptedToken string) (payloads map[string]interface{}, e erro
 		return nil, er
 	}
 
-	parser := paseto.NewParserWithoutExpiryCheck()
+	parser := paseto.NewParser()
 
 	token, er2 := parser.ParseV4Local(key, encryptedToken, nil)
 
@@ -60,15 +60,15 @@ func VerifyField(encryptedToken string) (payloads map[string]interface{}, e erro
 		return nil, er2
 	}
 
-	encrypted, err := token.GetString(os.Getenv("secretKey"))
+	decrypted, err := token.GetString(os.Getenv("secretKey"))
 	if err != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY: 1004) %s\n", err))
 		return nil, err
 	}
 
-	if errr := json.Unmarshal([]byte(encrypted), &payload); errr != nil {
+	if errr := json.Unmarshal([]byte(decrypted), &payload); errr != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFY:1005) %s", errr))
-		return nil, fmt.Errorf("Error unmarshaling payload: %v", err)
+		return nil, fmt.Errorf("error unmarshaling payload: %v", err)
 	}
 
 	return payload, nil
