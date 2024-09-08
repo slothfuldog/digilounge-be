@@ -2,6 +2,7 @@ package encryptor
 
 import (
 	com "digilounge/infrastructure/functions"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,7 +12,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-func VerifyPassword(encrpytedPass, password string) (isMatch bool, e error) {
+func VerifyPassword(encryptedPass, password string) (isMatch bool, e error) {
 	path, err := os.Getwd()
 	if err != nil {
 		com.PrintLog(fmt.Sprintf("(VERIFYPASS: 1000) %s", err))
@@ -25,9 +26,16 @@ func VerifyPassword(encrpytedPass, password string) (isMatch bool, e error) {
 		return false, er
 	}
 
+	decodedPass, err := base64.StdEncoding.DecodeString(encryptedPass)
+
+	if err != nil {
+		com.PrintLog(fmt.Sprintf("(VERIFYPASS:1003) Error decoding base64: %s", err))
+		return false, err
+	}
+
 	encrypted := argon2.IDKey([]byte(password), []byte(os.Getenv("salt")), 2, 64*1024, 8, 32)
 
-	if encrpytedPass != string(encrypted) {
+	if string(decodedPass) != string(encrypted) {
 		com.PrintLog("(VERIFYPASS:1002) PASSWORD IS NOT MATCH")
 		return false, fmt.Errorf("PASSWORD IS NOT MATCH")
 	}

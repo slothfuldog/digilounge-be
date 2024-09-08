@@ -2,6 +2,7 @@ package encryptor
 
 import (
 	com "digilounge/infrastructure/functions"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -28,7 +29,9 @@ func PasswordGenerator(password string) (encryptedPass string, e error) {
 
 	encrypted := argon2.IDKey([]byte(password), []byte(os.Getenv("salt")), 2, 64*1024, 8, 32)
 
-	return string(encrypted), nil
+	encryptedBase64 := base64.StdEncoding.EncodeToString(encrypted)
+
+	return string(encryptedBase64), nil
 }
 
 func FieldGenerator(customData map[string]interface{}) (result string, e error) {
